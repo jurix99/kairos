@@ -1,0 +1,230 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { SiteHeader } from "@/components/site-header"
+import { useAuth } from "@/contexts/auth-context"
+import { IconRobot, IconSend, IconUser, IconSparkles } from "@tabler/icons-react"
+import { Bot } from "lucide-react"
+
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: Date
+}
+
+export default function AssistantPage() {
+  const { user } = useAuth()
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "assistant",
+      content: "Hello! I'm your AI assistant for Kairos. I can help you manage your schedule, analyze your productivity, and suggest optimizations for your calendar. How can I help you today?",
+      timestamp: new Date(),
+    },
+  ])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim(),
+      timestamp: new Date(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+
+    // Simulate AI response (replace with actual API call)
+    setTimeout(() => {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I understand you're asking about: \"" + userMessage.content + "\". This is a demo response. In production, this would connect to an AI service to provide intelligent responses about your calendar and productivity.",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+      setIsLoading(false)
+    }, 1000)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  const quickActions = [
+    "Show my schedule for today",
+    "What's my most productive time?",
+    "Analyze my calendar patterns",
+    "Suggest time for a new task",
+  ]
+
+  return (
+    <>
+      <SiteHeader user={user} title="AI Assistant" icon={Bot} />
+      <div className="flex flex-1 flex-col h-[calc(100vh-4rem)]">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">     
+          {/* Chat Container */}
+          <Card className="flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle>Conversation</CardTitle>
+              <CardDescription>
+                Ask me anything about your schedule and productivity
+              </CardDescription>
+            </CardHeader>
+            <Separator />
+            
+            {/* Messages Area */}
+            <CardContent className="flex-1 flex flex-col p-0">
+              <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex gap-3 ${
+                        message.role === "user" ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          message.role === "user"
+                            ? "bg-primary"
+                            : "bg-gradient-to-br from-purple-600 to-pink-600"
+                        }`}
+                      >
+                        {message.role === "user" ? (
+                          <IconUser className="size-4 text-primary-foreground" />
+                        ) : (
+                          <IconRobot className="size-4 text-white" />
+                        )}
+                      </div>
+
+                      {/* Message Content */}
+                      <div
+                        className={`flex flex-col gap-1 ${
+                          message.role === "user" ? "items-end" : "items-start"
+                        } max-w-[80%]`}
+                      >
+                        <div
+                          className={`rounded-lg px-4 py-2 ${
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground px-2">
+                          {message.timestamp.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Loading indicator */}
+                  {isLoading && (
+                    <div className="flex gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-pink-600">
+                        <IconRobot className="size-4 text-white" />
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg bg-muted px-4 py-2">
+                        <div className="flex gap-1">
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]"></div>
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]"></div>
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-foreground/60"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <Separator />
+
+              {/* Quick Actions */}
+              {messages.length <= 1 && (
+                <div className="p-4 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Quick actions:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {quickActions.map((action, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setInput(action)
+                          setTimeout(() => handleSendMessage(), 100)
+                        }}
+                        className="text-xs"
+                      >
+                        {action}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Input Area */}
+              <div className="p-4">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
+                    className="min-h-[60px] max-h-[200px] resize-none"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!input.trim() || isLoading}
+                    size="icon"
+                    className="h-[60px] w-[60px] shrink-0"
+                  >
+                    <IconSend className="size-5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Press Enter to send • Shift+Enter for new line
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </>
+  )
+}
