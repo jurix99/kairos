@@ -8,6 +8,7 @@ import { ChartPriorityDistribution } from "@/components/chart-priority-distribut
 import { CategoryStatsTable } from "@/components/category-stats-table"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
+import { NotificationsBell } from "@/components/notifications-bell"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient, type Event, type Category } from "@/lib/api"
 
@@ -84,6 +85,7 @@ export default function Page() {
           )}
         </div>
       </div>
+      <NotificationsBell categories={categories} />
     </>
   )
 }

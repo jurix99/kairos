@@ -43,18 +43,27 @@ def create_tables():
                 connection.commit()
                 print("✅ Colonne 'status' ajoutée avec succès")
             
-            # Vérifier si la colonne recurrence_rule existe
-            result = connection.execute(text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'events' AND column_name = 'recurrence_rule'
-            """))
+            # Vérifier et ajouter les colonnes de récurrence
+            recurrence_columns = [
+                ("recurrence_type", "VARCHAR(20)"),
+                ("recurrence_interval", "INTEGER DEFAULT 1"),
+                ("recurrence_days", "VARCHAR(20)"),
+                ("recurrence_end_date", "TIMESTAMP"),
+                ("recurrence_count", "INTEGER")
+            ]
             
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne 'recurrence_rule' à la table events...")
-                connection.execute(text("ALTER TABLE events ADD COLUMN recurrence_rule VARCHAR(50)"))
-                connection.commit()
-                print("✅ Colonne 'recurrence_rule' ajoutée avec succès")
+            for column_name, column_type in recurrence_columns:
+                result = connection.execute(text(f"""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'events' AND column_name = '{column_name}'
+                """))
+                
+                if not result.fetchone():
+                    print(f"🔧 Ajout de la colonne '{column_name}' à la table events...")
+                    connection.execute(text(f"ALTER TABLE events ADD COLUMN {column_name} {column_type}"))
+                    connection.commit()
+                    print(f"✅ Colonne '{column_name}' ajoutée avec succès")
             
             # Vérifier si la colonne parent_event_id existe
             result = connection.execute(text("""

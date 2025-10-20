@@ -13,14 +13,22 @@ export interface User {
 }
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
-  color_code: string;
-  user_id: number;
+  color: string; // Renommé de color_code à color pour consistance
+  user_id: string;
+}
+
+export interface RecurrenceRule {
+  type: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  daysOfWeek?: number[]; // 0 = Monday, 6 = Sunday
+  endDate?: string;
+  count?: number;
 }
 
 export interface Event {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   start_time: string;
@@ -29,9 +37,9 @@ export interface Event {
   priority: 'low' | 'medium' | 'high';
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   is_flexible: boolean;
-  category: Category;
-  recurrence_rule?: string;
-  user_id: number;
+  category_id: string; // Renommé de category à category_id pour consistance
+  recurrence?: RecurrenceRule;
+  user_id: string;
 }
 
 class ApiClient {
@@ -113,7 +121,7 @@ class ApiClient {
     return response.json();
   }
 
-  async updateEvent(id: number, event: Partial<Event>): Promise<Event> {
+  async updateEvent(id: string, event: Partial<Event>): Promise<Event> {
     const response = await fetch(`${this.baseUrl}/events/${id}/`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
@@ -127,7 +135,7 @@ class ApiClient {
     return response.json();
   }
 
-  async deleteEvent(id: number): Promise<void> {
+  async deleteEvent(id: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/events/${id}/`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -148,24 +156,41 @@ class ApiClient {
       throw new Error('Failed to fetch categories');
     }
 
-    return response.json();
+    const categories = await response.json();
+    // Convert backend color_code to frontend color
+    return categories.map((cat: any) => ({
+      ...cat,
+      color: cat.color_code || cat.color // Support both formats
+    }));
   }
 
   async createCategory(category: Partial<Category>): Promise<Category> {
+    // Convert frontend color to backend color_code
+    const categoryData = {
+      ...category,
+      color_code: category.color,
+      // Remove color field if it exists to avoid conflicts
+      color: undefined
+    };
+
     const response = await fetch(`${this.baseUrl}/categories/`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(category),
+      body: JSON.stringify(categoryData),
     });
 
     if (!response.ok) {
       throw new Error('Failed to create category');
     }
 
-    return response.json();
+    const result = await response.json();
+    return {
+      ...result,
+      color: result.color_code || result.color
+    };
   }
 
-  async deleteCategory(id: number): Promise<void> {
+  async deleteCategory(id: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/categories/${id}/`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
@@ -174,6 +199,32 @@ class ApiClient {
     if (!response.ok) {
       throw new Error('Failed to delete category');
     }
+  }
+
+  async updateCategory(id: string, category: Partial<Category>): Promise<Category> {
+    // Convert frontend color to backend color_code
+    const categoryData = {
+      ...category,
+      color_code: category.color,
+      // Remove color field if it exists to avoid conflicts
+      color: undefined
+    };
+
+    const response = await fetch(`${this.baseUrl}/categories/${id}/`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(categoryData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update category');
+    }
+
+    const result = await response.json();
+    return {
+      ...result,
+      color: result.color_code || result.color
+    };
   }
 }
 

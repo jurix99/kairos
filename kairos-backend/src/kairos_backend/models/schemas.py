@@ -4,8 +4,8 @@ Schémas Pydantic pour la validation des données API
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict, validator
 
 
 class PriorityLevel(str, Enum):
@@ -21,6 +21,38 @@ class EventStatus(str, Enum):
     IN_PROGRESS = "in-progress"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+
+class RecurrenceType(str, Enum):
+    """Types de récurrence"""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
+class RecurrenceRule(BaseModel):
+    """Règle de récurrence pour un événement"""
+    type: RecurrenceType
+    interval: int = Field(default=1, ge=1, le=365)  # Tous les X jours/semaines/mois/années
+    days_of_week: Optional[List[int]] = Field(None, description="Jours de la semaine (0=Lundi, 6=Dimanche)")
+    end_date: Optional[datetime] = Field(None, description="Date de fin de récurrence")
+    count: Optional[int] = Field(None, ge=1, le=1000, description="Nombre d'occurrences")
+    
+    @validator('days_of_week')
+    def validate_days_of_week(cls, v):
+        if v is not None:
+            if not all(0 <= day <= 6 for day in v):
+                raise ValueError('Days of week must be between 0 (Monday) and 6 (Sunday)')
+            if len(set(v)) != len(v):
+                raise ValueError('Days of week must be unique')
+        return v
+    
+    @validator('count')
+    def validate_end_condition(cls, v, values):
+        if v is not None and values.get('end_date') is not None:
+            raise ValueError('Cannot specify both end_date and count')
+        return v
 
 
 # Schémas pour les utilisateurs
@@ -83,7 +115,7 @@ class EventBase(BaseModel):
     status: EventStatus = EventStatus.PENDING
     is_flexible: bool = True
     category_id: int
-    recurrence_rule: Optional[str] = Field(None, max_length=50)
+    recurrence: Optional[RecurrenceRule] = None
 
 
 class EventCreate(EventBase):
@@ -102,7 +134,7 @@ class EventUpdate(BaseModel):
     status: Optional[EventStatus] = None
     is_flexible: Optional[bool] = None
     category_id: Optional[int] = None
-    recurrence_rule: Optional[str] = Field(None, max_length=50)
+    recurrence: Optional[RecurrenceRule] = None
 
 
 class EventResponse(EventBase):

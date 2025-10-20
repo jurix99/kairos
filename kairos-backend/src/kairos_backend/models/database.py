@@ -61,8 +61,12 @@ class Event(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Champ pour la récurrence (par exemple, "daily", "weekly", "monthly")
-    recurrence_rule = Column(String(50), nullable=True)
+    # Champs pour la récurrence
+    recurrence_type = Column(String(20), nullable=True)  # daily, weekly, monthly, yearly
+    recurrence_interval = Column(Integer, nullable=True, default=1)  # Tous les X jours/semaines/mois
+    recurrence_days = Column(String(20), nullable=True)  # Jours de la semaine pour daily (ex: "1,3,5" pour lun,mer,ven)
+    recurrence_end_date = Column(DateTime, nullable=True)  # Date limite de récurrence
+    recurrence_count = Column(Integer, nullable=True)  # Nombre d'occurrences max (alternative à end_date)
     
     # Champ pour lier les événements récurrents à l'événement parent
     parent_event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
@@ -76,4 +80,32 @@ class Event(Base):
     user = relationship("User", back_populates="events")
     
     # Relation pour les événements récurrents
-    parent_event = relationship("Event", remote_side=[id], backref="children") 
+    parent_event = relationship("Event", remote_side=[id], backref="children")
+    
+    @property
+    def recurrence(self):
+        """Reconstituer l'objet RecurrenceRule à partir des champs de base de données"""
+        if not self.recurrence_type:
+            return None
+        
+        # Convertir recurrence_days de string vers list
+        days_of_week = None
+        if self.recurrence_days:
+            try:
+                days_of_week = [int(d) for d in self.recurrence_days.split(',')]
+            except:
+                days_of_week = None
+        
+        # Convertir end_date vers string ISO si présent
+        end_date = None
+        if self.recurrence_end_date:
+            end_date = self.recurrence_end_date.isoformat()
+        
+        from .schemas import RecurrenceRule
+        return RecurrenceRule(
+            type=self.recurrence_type,
+            interval=self.recurrence_interval or 1,
+            days_of_week=days_of_week,
+            end_date=end_date,
+            count=self.recurrence_count
+        ) 

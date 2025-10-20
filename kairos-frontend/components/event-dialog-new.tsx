@@ -55,40 +55,14 @@ export function EventDialog({
   const setOpen = controlledOnOpenChange || setInternalOpen
 
   const getInitialStartTime = () => {
-    if (defaultStartTime) {
-      const year = defaultStartTime.getFullYear()
-      const month = String(defaultStartTime.getMonth() + 1).padStart(2, "0")
-      const day = String(defaultStartTime.getDate()).padStart(2, "0")
-      const hours = String(defaultStartTime.getHours()).padStart(2, "0")
-      const minutes = String(defaultStartTime.getMinutes()).padStart(2, "0")
-      return `${year}-${month}-${day}T${hours}:${minutes}:00`
-    }
-    const now = defaultDate
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, "0")
-    const day = String(now.getDate()).padStart(2, "0")
-    const hours = String(now.getHours()).padStart(2, "0")
-    const minutes = String(now.getMinutes()).padStart(2, "0")
-    return `${year}-${month}-${day}T${hours}:${minutes}:00`
+    if (defaultStartTime) return formatDateTimeLocal(defaultStartTime)
+    return formatDateTimeLocal(defaultDate)
   }
 
   const getInitialEndTime = () => {
-    if (defaultEndTime) {
-      const year = defaultEndTime.getFullYear()
-      const month = String(defaultEndTime.getMonth() + 1).padStart(2, "0")
-      const day = String(defaultEndTime.getDate()).padStart(2, "0")
-      const hours = String(defaultEndTime.getHours()).padStart(2, "0")
-      const minutes = String(defaultEndTime.getMinutes()).padStart(2, "0")
-      return `${year}-${month}-${day}T${hours}:${minutes}:00`
-    }
-    let endDateTime = defaultStartTime || defaultDate
-    endDateTime = new Date(endDateTime.getTime() + 60 * 60 * 1000) // +1 heure
-    const year = endDateTime.getFullYear()
-    const month = String(endDateTime.getMonth() + 1).padStart(2, "0")
-    const day = String(endDateTime.getDate()).padStart(2, "0")
-    const hours = String(endDateTime.getHours()).padStart(2, "0")
-    const minutes = String(endDateTime.getMinutes()).padStart(2, "0")
-    return `${year}-${month}-${day}T${hours}:${minutes}:00`
+    if (defaultEndTime) return formatDateTimeLocal(defaultEndTime)
+    if (defaultStartTime) return formatDateTimeLocal(new Date(defaultStartTime.getTime() + 60 * 60 * 1000))
+    return formatDateTimeLocal(new Date(defaultDate.getTime() + 60 * 60 * 1000))
   }
 
   const [formData, setFormData] = useState({
@@ -102,6 +76,15 @@ export function EventDialog({
     location: "",
     recurrence: null as RecurrenceRule | null,
   })
+
+  function formatDateTimeLocal(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
 
   // Update form data when default times change
   useEffect(() => {
@@ -123,10 +106,6 @@ export function EventDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log("🔍 FormData avant envoi:", formData)
-    console.log("🔍 start_time:", formData.start_time)
-    console.log("🔍 end_time:", formData.end_time)
-    
     if (!formData.title || !formData.category_id || !formData.start_time || !formData.end_time) {
       alert("Please fill in all required fields")
       return
@@ -134,7 +113,7 @@ export function EventDialog({
 
     try {
       setIsLoading(true)
-      const eventData = {
+      await apiClient.createEvent({
         title: formData.title,
         description: formData.description,
         category_id: formData.category_id,
@@ -144,35 +123,15 @@ export function EventDialog({
         priority: formData.priority as "low" | "medium" | "high",
         status: formData.status as "pending" | "in_progress" | "completed" | "cancelled",
         recurrence: formData.recurrence,
-      }
-      
-      console.log("🚀 Sending event data:", eventData)
-      
-      await apiClient.createEvent(eventData)
+      })
 
       // Reset form
-      const now = new Date()
-      const nowYear = now.getFullYear()
-      const nowMonth = String(now.getMonth() + 1).padStart(2, "0")
-      const nowDay = String(now.getDate()).padStart(2, "0")
-      const nowHours = String(now.getHours()).padStart(2, "0")
-      const nowMinutes = String(now.getMinutes()).padStart(2, "0")
-      const nowLocalISO = `${nowYear}-${nowMonth}-${nowDay}T${nowHours}:${nowMinutes}:00`
-      
-      const endTime = new Date(now.getTime() + 60 * 60 * 1000)
-      const endYear = endTime.getFullYear()
-      const endMonth = String(endTime.getMonth() + 1).padStart(2, "0")
-      const endDay = String(endTime.getDate()).padStart(2, "0")
-      const endHours = String(endTime.getHours()).padStart(2, "0")
-      const endMinutes = String(endTime.getMinutes()).padStart(2, "0")
-      const endLocalISO = `${endYear}-${endMonth}-${endDay}T${endHours}:${endMinutes}:00`
-      
       setFormData({
         title: "",
         description: "",
         category_id: "",
-        start_time: nowLocalISO,
-        end_time: endLocalISO,
+        start_time: formatDateTimeLocal(new Date()),
+        end_time: formatDateTimeLocal(new Date(Date.now() + 60 * 60 * 1000)),
         priority: "medium",
         status: "pending",
         location: "",
@@ -371,3 +330,4 @@ export function EventDialog({
     </Dialog>
   )
 }
+
