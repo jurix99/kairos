@@ -57,16 +57,16 @@ uv run python main.py
 python main.py
 
 # Méthode 3: Avec uvicorn
-uvicorn src.backend.api:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.backend.api:app --reload --host 0.0.0.0 --port 8080
 ```
 
-Le serveur sera accessible sur : http://localhost:8000
+Le serveur sera accessible sur : http://localhost:8080
 
 ### Documentation API
 
 Une fois le serveur lancé, accédez à :
-- **Documentation interactive** : http://localhost:8000/docs
-- **Documentation ReDoc** : http://localhost:8000/redoc
+- **Documentation interactive** : http://localhost:8080/docs
+- **Documentation ReDoc** : http://localhost:8080/redoc
 
 ## 📋 API Endpoints
 
@@ -110,7 +110,7 @@ Une fois le serveur lancé, accédez à :
 ### Créer une catégorie
 
 ```bash
-curl -X POST "http://localhost:8000/categories" \
+curl -X POST "http://localhost:8080/categories" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Rendez-vous",
@@ -122,7 +122,7 @@ curl -X POST "http://localhost:8000/categories" \
 ### Créer un événement
 
 ```bash
-curl -X POST "http://localhost:8000/events" \
+curl -X POST "http://localhost:8080/events" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Réunion équipe",
@@ -139,7 +139,7 @@ curl -X POST "http://localhost:8000/events" \
 ### Planifier automatiquement un événement
 
 ```bash
-curl -X POST "http://localhost:8000/events/schedule" \
+curl -X POST "http://localhost:8080/events/schedule" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Formation",
@@ -155,7 +155,7 @@ curl -X POST "http://localhost:8000/events/schedule" \
 ### Récupérer le planning quotidien
 
 ```bash
-curl "http://localhost:8000/schedule/daily?date=2024-01-15T00:00:00"
+curl "http://localhost:8080/schedule/daily?date=2024-01-15T00:00:00"
 ```
 
 ## 🧪 Tests

@@ -231,4 +231,54 @@ class GoalResponse(GoalBase):
     completed_at: Optional[datetime] = None
     user_id: int
     
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Schémas pour les suggestions
+
+class SuggestionType(str, Enum):
+    """Types de suggestions"""
+    TAKE_BREAK = "take_break"
+    BALANCE_DAY = "balance_day"
+    MOVE_EVENT = "move_event"
+
+
+class SuggestionStatus(str, Enum):
+    """Statuts possibles pour les suggestions"""
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class SuggestionBase(BaseModel):
+    """Schéma de base pour une suggestion"""
+    type: SuggestionType
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str
+    priority: PriorityLevel = PriorityLevel.MEDIUM
+    status: SuggestionStatus = SuggestionStatus.PENDING
+    extra_data: Optional[str] = None  # JSON string
+    rule_triggered: str = Field(..., max_length=100)
+    expires_at: Optional[datetime] = None
+    related_event_id: Optional[int] = None
+
+
+class SuggestionCreate(SuggestionBase):
+    """Schéma pour créer une suggestion"""
+    pass
+
+
+class SuggestionUpdate(BaseModel):
+    """Schéma pour mettre à jour une suggestion"""
+    status: Optional[SuggestionStatus] = None
+
+
+class SuggestionResponse(SuggestionBase):
+    """Schéma de réponse pour une suggestion"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    user_id: int
+    
     model_config = ConfigDict(from_attributes=True) 

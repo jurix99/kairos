@@ -4,7 +4,7 @@ This document provides detailed information about the Kairos REST API endpoints.
 
 ## Base URL
 
-- **Development**: `http://localhost:8000`
+- **Development**: `http://localhost:8080`
 - **Production**: `https://api.yourdomain.com`
 
 ## Authentication
@@ -70,7 +70,7 @@ GET /events
 **Example Request:**
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:8000/events?limit=10&category_id=1&priority=high"
+  "http://localhost:8080/events?limit=10&category_id=1&priority=high"
 ```
 
 **Response:**
@@ -335,7 +335,7 @@ GET /schedule/daily
 **Example:**
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:8000/schedule/daily?date=2024-01-15T00:00:00Z"
+  "http://localhost:8080/schedule/daily?date=2024-01-15T00:00:00Z"
 ```
 
 **Response:**
@@ -681,7 +681,7 @@ Rate limit headers are included in responses:
 ```http
 X-RateLimit-Limit: 1000
 X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1642248000
+X-RateLimit-Reset: 1642248080
 ```
 
 ## Webhooks
@@ -761,4 +761,5 @@ events = client.events.list(limit=10, category_id=1)
 
 ---
 
-For more information, visit the [interactive API documentation](http://localhost:8000/docs) when running the development server.
+For more information, visit the [interactive API documentation](http://localhost:8080/docs) when running the development server.
+
