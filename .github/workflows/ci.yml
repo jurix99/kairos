@@ -224,13 +224,13 @@ jobs:
         docker-compose up -d --build
         
         # Wait for services to be ready
-        timeout 300 bash -c 'until curl -f http://localhost:8000/health; do sleep 5; done'
+        timeout 300 bash -c 'until curl -f http://localhost:8080/health; do sleep 5; done'
         timeout 300 bash -c 'until curl -f http://localhost:3000; do sleep 5; done'
     
     - name: Run integration tests
       run: |
         # Add integration test commands here
-        curl -f http://localhost:8000/health
+        curl -f http://localhost:8080/health
         curl -f http://localhost:3000
     
     - name: Show logs on failure
@@ -289,3 +289,4 @@ jobs:
           - Second Change
         draft: false
         prerelease: false
+

@@ -35,8 +35,8 @@ up: setup ## Démarrer tous les services
 	docker-compose up -d
 	@echo "$(GREEN)✅ Services démarrés !$(NC)"
 	@echo "$(YELLOW)🌐 Frontend: http://localhost:3000$(NC)"
-	@echo "$(YELLOW)🔧 Backend: http://localhost:8000$(NC)"
-	@echo "$(YELLOW)📚 API Docs: http://localhost:8000/docs$(NC)"
+	@echo "$(YELLOW)🔧 Backend: http://localhost:8080$(NC)"
+	@echo "$(YELLOW)📚 API Docs: http://localhost:8080/docs$(NC)"
 
 down: ## Arrêter tous les services
 	@echo "$(GREEN)🛑 Arrêt des services...$(NC)"

@@ -142,4 +142,35 @@ class Goal(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relations
-    user = relationship("User", back_populates="goals") 
+    user = relationship("User", back_populates="goals")
+
+
+class Suggestion(Base):
+    """Suggestion générée par le moteur de règles"""
+    __tablename__ = "suggestions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(String(50), nullable=False)  # take_break, balance_day, move_event
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    priority = Column(String(10), nullable=False, default="medium")  # low, medium, high
+    status = Column(String(20), nullable=False, default="pending")  # pending, accepted, rejected, expired
+    
+    # Données supplémentaires pour la suggestion
+    extra_data = Column(Text, nullable=True)  # JSON avec données supplémentaires (event_id, heures travaillées, etc.)
+    rule_triggered = Column(String(100), nullable=False)  # Nom de la règle qui a généré cette suggestion
+    
+    # Dates
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)  # Date d'expiration de la suggestion
+    
+    # Clé étrangère vers l'utilisateur
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Relation optionnelle vers un événement si la suggestion concerne un événement spécifique
+    related_event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
+    
+    # Relations
+    user = relationship("User", backref="suggestions")
+    related_event = relationship("Event", backref="suggestions") 

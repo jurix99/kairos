@@ -76,7 +76,7 @@ services:
     environment:
       DATABASE_URL: postgresql://kairos_user:kairos_password@postgres:5432/kairos
     ports:
-      - "8000:8000"
+      - "8080:8080"
     depends_on:
       - postgres
     volumes:
@@ -85,7 +85,7 @@ services:
   frontend:
     build: ./frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8080
     ports:
       - "3000:3000"
     volumes:
@@ -170,7 +170,7 @@ export OPENAI_API_KEY="your_openai_key"
 uv run python migrate.py
 
 # 5. Start production server
-uv run gunicorn src.kairos_backend.app:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+uv run gunicorn src.kairos_backend.app:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
 ```
 
 ### Frontend Deployment
@@ -241,7 +241,7 @@ server {
 
     # Backend API
     location /api {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -251,7 +251,7 @@ server {
 
     # WebSocket support (if needed)
     location /ws {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -295,7 +295,7 @@ docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/kairos-frontend:latest
       "image": "123456789.dkr.ecr.us-east-1.amazonaws.com/kairos-backend:latest",
       "portMappings": [
         {
-          "containerPort": 8000,
+          "containerPort": 8080,
           "protocol": "tcp"
         }
       ],
@@ -733,3 +733,4 @@ FastAPICache.init(RedisBackend(), prefix="kairos-cache")
 ---
 
 This deployment guide covers the major deployment scenarios. Choose the option that best fits your needs and infrastructure requirements.
+

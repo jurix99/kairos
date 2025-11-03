@@ -107,8 +107,8 @@ docker-compose logs -f
 
 Services will be available at:
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
+- **Backend API**: http://localhost:8080
+- **API Documentation**: http://localhost:8080/docs
 
 ### 4. Manual Setup (Development)
 
@@ -145,8 +145,8 @@ npm run dev
 ## 📚 Documentation
 
 ### API Documentation
-- **Interactive Docs**: http://localhost:8000/docs (Swagger UI)
-- **ReDoc**: http://localhost:8000/redoc
+- **Interactive Docs**: http://localhost:8080/docs (Swagger UI)
+- **ReDoc**: http://localhost:8080/redoc
 - **Backend README**: [backend/README.md](backend/README.md)
 - **Frontend README**: [frontend/README.md](frontend/README.md)
 
@@ -310,7 +310,7 @@ The system initializes with these default categories:
 ### Common Issues
 
 #### Backend Issues
-- **Port 8000 in use**: Change port in `main.py` or kill existing process
+- **Port 8080 in use**: Change port in `main.py` or kill existing process
 - **Database errors**: Run `uv run python migrate.py` to update schema
 - **Import errors**: Ensure you're in the correct virtual environment
 
@@ -364,3 +364,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Made with ❤️ by the Kairos team
 
 </div>
+

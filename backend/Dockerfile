@@ -24,11 +24,11 @@ RUN uv sync --frozen
 COPY . .
 
 # Exposer le port
-EXPOSE 8000
+EXPOSE 8080
 
 # Variables d'environnement par défaut
 ENV PYTHONPATH=/app
 ENV DATABASE_URL=postgresql://kairos_user:kairos_password@postgres:5432/kairos
 
 # Commande par défaut
-CMD ["uv", "run", "uvicorn", "src.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "src.backend.app:app", "--host", "0.0.0.0", "--port", "8080"]
