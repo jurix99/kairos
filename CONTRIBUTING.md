@@ -97,7 +97,7 @@ npm run dev
 
 ### Verify Installation
 
-- Backend: http://localhost:8000/docs
+- Backend: http://localhost:8080/docs
 - Frontend: http://localhost:3000
 
 ## 🤝 How to Contribute
@@ -466,3 +466,4 @@ Don't hesitate to ask questions! You can:
 - Reach out to maintainers directly
 
 Thank you for contributing to Kairos! 🚀
+

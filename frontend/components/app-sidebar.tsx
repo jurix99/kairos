@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import type { User } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useSuggestionsCount } from "@/hooks/use-suggestions-count"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: User
@@ -35,6 +36,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const router = useRouter()
   const { signOut } = useAuth()
+  const { count: suggestionsCount } = useSuggestionsCount()
 
   const handleSignOut = () => {
     signOut()
@@ -52,6 +54,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         title: "Dashboard",
         url: "/dashboard",
         icon: IconDashboard,
+        badge: suggestionsCount,
       },
       {
         title: "Calendar",

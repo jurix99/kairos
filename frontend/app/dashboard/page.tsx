@@ -9,6 +9,7 @@ import { CategoryStatsTable } from "@/components/category-stats-table"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { NotificationsBell } from "@/components/notifications-bell"
+import { SuggestionsPanel } from "@/components/suggestions-panel"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient, type Event, type Category } from "@/lib/api"
 
@@ -69,6 +70,11 @@ export default function Page() {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               {/* KPI Cards */}
               <SectionCards events={events} categories={categories} />
+              
+              {/* Suggestions Panel */}
+              <div className="px-4 lg:px-6">
+                <SuggestionsPanel />
+              </div>
               
               {/* Main Chart - Event Progress Over Time */}
               <div className="px-4 lg:px-6">
