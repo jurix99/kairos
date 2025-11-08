@@ -3,8 +3,11 @@ Routes API pour le système d'orchestration multi-agents
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
+import json
+import asyncio
 
 from ..config.database import get_db
 from ..config.auth import get_current_user
@@ -70,6 +73,99 @@ async def create_orchestrated_plan(
     """
     orchestration_service = OrchestrationService(db)
     return await orchestration_service.create_orchestrated_plan(request, current_user.id)
+
+
+@router.post("/plan/stream")
+async def create_orchestrated_plan_stream(
+    request: OrchestratedPlanRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crée un plan orchestré avec streaming progressif des résultats
+    
+    Retourne un flux SSE (Server-Sent Events) avec les updates en temps réel
+    """
+    async def event_generator():
+        try:
+            orchestration_service = OrchestrationService(db)
+            
+            # Étape 1: Classification
+            yield f"data: {json.dumps({'type': 'status', 'message': 'Classification du besoin en cours...'})}\n\n"
+            
+            classification = await orchestration_service.classifier.classify_need(
+                NeedClassificationRequest(
+                    user_input=request.user_input,
+                    context={}
+                )
+            )
+            
+            yield f"data: {json.dumps({'type': 'classification', 'data': classification.dict()})}\n\n"
+            
+            # Étape 2: Exécution des agents un par un
+            agent_responses = []
+            for agent_type in classification.suggested_agents:
+                yield f"data: {json.dumps({'type': 'agent_start', 'agent_type': agent_type.value})}\n\n"
+                agent_request = AgentTaskRequest(
+                    agent_type=agent_type,
+                    user_input=request.user_input,
+                    need_type=classification.need_type,
+                    context={}
+                )
+                
+                response = await orchestration_service.multi_agent.execute_agent_task(
+                    agent_request,
+                    current_user.id
+                )
+                
+                agent_responses.append(response)
+                yield f"data: {json.dumps({'type': 'agent_complete', 'data': response.dict()})}\n\n"
+              # Étape 3: Intégration et résumé final
+            yield f"data: {json.dumps({'type': 'status', 'message': 'Création du résumé final...'})}\n\n"
+            
+            summary = orchestration_service._generate_summary(
+                classification,
+                agent_responses
+            )
+            
+            # Collecter les IDs des ressources créées
+            created_goals = []
+            created_events = []
+            for response in agent_responses:
+                created_goals.extend(response.created_goals)
+                created_events.extend(response.created_events)
+            
+            # Résultat final
+            final_result = {
+                'type': 'complete',
+                'data': {
+                    'classification': classification.dict(),
+                    'agent_responses': [r.dict() for r in agent_responses],
+                    'integrated_plan': {},
+                    'summary': summary,
+                    'created_goals': created_goals,
+                    'created_events': created_events
+                }
+            }
+            
+            yield f"data: {json.dumps(final_result)}\n\n"
+            
+        except Exception as e:
+            error_data = {
+                'type': 'error',
+                'message': str(e)
+            }
+            yield f"data: {json.dumps(error_data)}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @router.get("/agents", response_model=List[dict])
