@@ -14,6 +14,7 @@ import { SiteHeader } from "@/components/site-header"
 import { useAuth } from "@/contexts/auth-context"
 import { useSettings } from "@/contexts/settings-context"
 import { CategoryManager } from "@/components/category-manager"
+import { CalendarIntegrationsManager } from "@/components/calendar-integrations-manager"
 import { NotificationsBell } from "@/components/notifications-bell"
 import { apiClient, type Category } from "@/lib/api"
 
@@ -430,6 +431,11 @@ export default function SettingsPage() {
           <CategoryManager 
             categories={categories}
             onCategoriesChange={loadCategories}
+          />
+
+          {/* Calendar Integrations */}
+          <CalendarIntegrationsManager 
+            onIntegrationsChange={loadCategories}
           />
 
         </div>
