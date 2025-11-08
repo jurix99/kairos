@@ -46,6 +46,30 @@ class MultiAgentOrchestratorService:
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
         self.goal_service = GoalService(db)
     
+    def _normalize_next_steps(self, steps: any) -> List[str]:
+        """
+        Normalise les next_steps pour s'assurer qu'ils sont des strings
+        """
+        if not steps:
+            return []
+        
+        if isinstance(steps, str):
+            return [steps]
+        
+        if isinstance(steps, list):
+            normalized = []
+            for step in steps:
+                if isinstance(step, str):
+                    normalized.append(step)
+                elif isinstance(step, dict):
+                    # Si c'est un dict, essayer d'extraire un champ texte
+                    normalized.append(step.get('title') or step.get('description') or step.get('step') or str(step))
+                else:
+                    normalized.append(str(step))
+            return normalized
+        
+        return [str(steps)]
+    
     async def execute_agent_task(
         self,
         request: AgentTaskRequest,
@@ -104,7 +128,6 @@ Retourne un JSON avec: phases, duration_weeks, frequency_per_week, milestones, s
 Contexte: {json.dumps(request.context) if request.context else 'Aucun contexte additionnel'}
 
 Crée un plan progressif détaillé."""
-
         try:
             response = await self.client.chat.completions.create(
                 model=settings.OPENAI_MODEL,
@@ -112,11 +135,14 @@ Crée un plan progressif détaillé."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
                 response_format={"type": "json_object"}
             )
-            
             result = json.loads(response.choices[0].message.content)
+            
+            # S'assurer que success_metrics est une liste de strings
+            success_metrics = result.get('success_metrics', [])
+            if success_metrics and isinstance(success_metrics[0], dict):
+                success_metrics = [str(metric) for metric in success_metrics]
             
             # Créer un objectif dans la base de données
             goal_data = GoalCreate(
@@ -127,7 +153,7 @@ Crée un plan progressif détaillé."""
                 status=GoalStatus.ACTIVE,
                 category=GoalCategory.PERSONAL,
                 strategy=json.dumps(result, ensure_ascii=False),
-                success_criteria="\n".join(result.get('success_metrics', []))
+                success_criteria="\n".join(success_metrics) if success_metrics else ""
             )
             
             created_goal = self.goal_service.create_goal(goal_data, user_id)
@@ -191,7 +217,6 @@ Définis les phases stratégiques du projet."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.6,
                 response_format={"type": "json_object"}
             )
             
@@ -268,7 +293,6 @@ Crée un planning détaillé."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.5,
                 response_format={"type": "json_object"}
             )
             
@@ -332,7 +356,6 @@ Liste les ressources nécessaires."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.5,
                 response_format={"type": "json_object"}
             )
             
@@ -395,7 +418,6 @@ Compare les options et recommande."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.5,
                 response_format={"type": "json_object"}
             )
             
@@ -459,17 +481,16 @@ Planifie l'événement."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.6,
                 response_format={"type": "json_object"}
             )
-            
             result = json.loads(response.choices[0].message.content)
             
+            event_type = result.get('event_type', "l'événement")
             return AgentTaskResponse(
                 agent_type=AgentType.SOCIAL,
                 success=True,
                 result=result,
-                message=f"Plan d'événement créé pour {result.get('event_type', 'l\'événement')}",
+                message=f"Plan d'événement créé pour {event_type}",
                 next_steps=[
                     "Réserver le lieu",
                     "Envoyer les invitations",
@@ -518,10 +539,8 @@ Définis les étapes d'action."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.4,
                 response_format={"type": "json_object"}
             )
-            
             result = json.loads(response.choices[0].message.content)
             
             return AgentTaskResponse(
@@ -529,7 +548,7 @@ Définis les étapes d'action."""
                 success=True,
                 result=result,
                 message=f"Tâche décomposée en {len(result.get('steps', []))} étapes",
-                next_steps=result.get('steps', [])
+                next_steps=self._normalize_next_steps(result.get('steps', []))
             )
             
         except Exception as e:

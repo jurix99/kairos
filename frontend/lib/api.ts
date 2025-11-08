@@ -1,17 +1,21 @@
 /**
  * API Client for Kairos Backend
+ * Handles all HTTP requests to the backend API
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// Types
+// ========================================
+// Types & Interfaces
+// ========================================
+
 export interface User {
   id: number;
-  external_id: string;
   name: string;
   email: string;
   picture?: string;
   provider: string;
+  external_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -92,84 +96,293 @@ export interface SyncResult {
   message: string;
 }
 
-// Helper function to get auth headers from localStorage
-function getAuthHeaders(): HeadersInit {
-  const user = localStorage.getItem('kairos_user');
-  if (user) {
-    try {
-      // The backend expects the user data as a Bearer token
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user}`,
-      };
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-    }
-  }
-  return {
-    'Content-Type': 'application/json',
-  };
+export interface ExtractedEvent {
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  location?: string;
+  priority: string;
+  category_name: string;
 }
 
-// API Client
-class ApiClient {
-  private baseUrl: string;
+export interface ChatResponse {
+  message: string;
+  events: ExtractedEvent[];
+  action: string;
+}
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+// Orchestration Types
+export type NeedType = 'punctual_task' | 'habit_skill' | 'complex_project' | 'decision_research' | 'social_event';
+export type NeedComplexity = 'simple' | 'moderate' | 'complex' | 'very_complex';
+export type AgentType = 'executive' | 'coach' | 'strategist' | 'planner' | 'resource' | 'research' | 'social';
+
+export interface NeedClassificationRequest {
+  user_input: string;
+  context?: Record<string, any>;
+}
+
+export interface NeedClassificationResponse {
+  need_type: NeedType;
+  complexity: NeedComplexity;
+  suggested_agents: AgentType[];
+  confidence: number;
+  reasoning: string;
+  key_characteristics: string[];
+}
+
+export interface AgentTaskRequest {
+  agent_type: AgentType;
+  user_input: string;
+  need_type: NeedType;
+  context?: Record<string, any>;
+}
+
+export interface AgentTaskResponse {
+  agent_type: AgentType;
+  success: boolean;
+  result: Record<string, any>;
+  message: string;
+  next_steps: string[];
+  created_goals: number[];
+  created_events: number[];
+}
+
+export interface OrchestratedPlanRequest {
+  user_input: string;
+  include_calendar_integration?: boolean;
+  create_goals?: boolean;
+  create_events?: boolean;
+}
+
+export interface OrchestratedPlanResponse {
+  classification: NeedClassificationResponse;
+  agent_responses: AgentTaskResponse[];
+  integrated_plan: Record<string, any>;
+  summary: string;
+  created_goals: number[];
+  created_events: number[];
+}
+
+export interface AgentInfo {
+  type: string;
+  name: string;
+  description: string;
+  use_cases: string[];
+}
+
+export interface NeedTypeInfo {
+  type: string;
+  name: string;
+  description: string;
+  characteristics: string[];
+  examples: string[];
+  agents: string[];
+}
+
+// ========================================
+// API Client Class
+// ========================================
+
+class APIClient {
+  private baseURL: string;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+  }
+  private getAuthHeaders(): HeadersInit {
+    if (typeof window === 'undefined') {
+      return {
+        'Content-Type': 'application/json',
+      };
+    }
+    const user = localStorage.getItem('kairos_user');
+    if (user) {
+      try {
+        // The backend expects the user data as a Bearer token
+        return {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user}`,
+        };
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    return {
+      'Content-Type': 'application/json',
+    };
   }
 
-  // Categories
-  async getCategories(): Promise<Category[]> {
-    const response = await fetch(`${this.baseUrl}/categories`, {
-      headers: getAuthHeaders(),
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...options.headers,
+    };
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      ...options,
+      headers,
     });
+
     if (!response.ok) {
-      throw new Error('Failed to fetch categories');
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `HTTP error! status: ${response.status}`);
     }
+
     return response.json();
   }
 
-  async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
-    const response = await fetch(`${this.baseUrl}/categories`, {
+  // ========================================
+  // Assistant API
+  // ========================================
+
+  async chatWithAssistant(data: {
+    message: string;
+    conversation_history: Array<{ role: string; content: string }>;
+  }): Promise<ChatResponse> {
+    return this.request<ChatResponse>('/assistant/chat', {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(category),
+      body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create category');
-    }
-    return response.json();
   }
 
-  async updateCategory(id: number, category: Partial<Category>): Promise<Category> {
-    const response = await fetch(`${this.baseUrl}/categories/${id}`, {
+  async createEventsFromAssistant(data: {
+    events: ExtractedEvent[];
+  }): Promise<{ message: string; created_events: number[] }> {
+    return this.request('/assistant/create-events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ========================================
+  // Orchestration API
+  // ========================================
+
+  /**
+   * Classify a user need (Level 1)
+   * Identifies the type of need and suggests appropriate agents
+   */
+  async classifyNeed(request: NeedClassificationRequest): Promise<NeedClassificationResponse> {
+    return this.request<NeedClassificationResponse>('/api/orchestration/classify', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Execute a specific agent task (Level 2)
+   * Allows manual invocation of a particular agent
+   */
+  async executeAgentTask(request: AgentTaskRequest): Promise<AgentTaskResponse> {
+    return this.request<AgentTaskResponse>('/api/orchestration/agent/execute', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Create a complete orchestrated plan
+   * Main endpoint that combines classification + agent execution + integration
+   */
+  async createOrchestratedPlan(request: OrchestratedPlanRequest): Promise<OrchestratedPlanResponse> {
+    return this.request<OrchestratedPlanResponse>('/api/orchestration/plan', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * List all available agents with their descriptions
+   */
+  async listAvailableAgents(): Promise<AgentInfo[]> {
+    return this.request<AgentInfo[]>('/api/orchestration/agents', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * List all need types recognized by the system
+   */
+  async listNeedTypes(): Promise<NeedTypeInfo[]> {
+    return this.request<NeedTypeInfo[]>('/api/orchestration/need-types', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Check orchestration system health
+   */
+  async checkOrchestrationHealth(): Promise<{
+    status: string;
+    database: string;
+    openai: string;
+    agents_available: number;
+    need_types_supported: number;
+  }> {
+    return this.request('/api/orchestration/health', {
+      method: 'GET',
+    });
+  }
+  // ========================================
+  // Goals API
+  // ========================================
+
+  async getGoals(params?: {
+    status?: string;
+    category?: string;
+    priority?: string;
+  }): Promise<Goal[]> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value);
+      });
+    }
+    const query = queryParams.toString();
+    return this.request<Goal[]>(`/goals${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  }
+
+  async createGoal(goal: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'completed_at'>): Promise<Goal> {
+    return this.request<Goal>('/goals', {
+      method: 'POST',
+      body: JSON.stringify(goal),
+    });
+  }
+
+  async getGoalById(goalId: number): Promise<Goal> {
+    return this.request<Goal>(`/goals/${goalId}`, {
+      method: 'GET',
+    });
+  }
+
+  async updateGoal(goalId: number, goal: Partial<Goal>): Promise<Goal> {
+    return this.request<Goal>(`/goals/${goalId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(category),
+      body: JSON.stringify(goal),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update category');
-    }
-    return response.json();
   }
 
-  async deleteCategory(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/categories/${id}`, {
+  async deleteGoal(goalId: number): Promise<void> {
+    return this.request<void>(`/goals/${goalId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete category');
-    }
   }
+  // ========================================
+  // Events API
+  // ========================================
 
-  // Events
   async getEvents(filters?: {
     start_date?: string;
     end_date?: string;
     category_id?: number;
     priority?: string;
+    status?: string;
   }): Promise<Event[]> {
     const params = new URLSearchParams();
     if (filters) {
@@ -179,156 +392,130 @@ class ApiClient {
         }
       });
     }
-    
-    const url = `${this.baseUrl}/events${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await fetch(url, {
-      headers: getAuthHeaders(),
+    const query = params.toString();
+    return this.request<Event[]>(`/events${query ? `?${query}` : ''}`, {
+      method: 'GET',
     });
-    if (!response.ok) {
-      throw new Error('Failed to fetch events');
-    }
-    return response.json();
   }
 
   async createEvent(event: Omit<Event, 'id' | 'user_id' | 'category' | 'created_at' | 'updated_at'>): Promise<Event> {
-    const response = await fetch(`${this.baseUrl}/events`, {
+    return this.request<Event>('/events', {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(event),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create event');
-    }
-    return response.json();
   }
 
-  async updateEvent(id: number, event: Partial<Event>): Promise<Event> {
-    const response = await fetch(`${this.baseUrl}/events/${id}`, {
+  async updateEvent(eventId: number, event: Partial<Event>): Promise<Event> {
+    return this.request<Event>(`/events/${eventId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
       body: JSON.stringify(event),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update event');
-    }
-    return response.json();
   }
 
-  async deleteEvent(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/events/${id}`, {
+  async deleteEvent(eventId: number): Promise<void> {
+    return this.request<void>(`/events/${eventId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete event');
-    }
+  }
+  // ========================================
+  // Categories API
+  // ========================================
+
+  async getCategories(): Promise<Category[]> {
+    return this.request<Category[]>('/categories', {
+      method: 'GET',
+    });
   }
 
-  // Goals
-  async getGoals(): Promise<Goal[]> {
-    const response = await fetch(`${this.baseUrl}/goals`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch goals');
-    }
-    return response.json();
-  }
-
-  async createGoal(goal: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'completed_at'>): Promise<Goal> {
-    const response = await fetch(`${this.baseUrl}/goals`, {
+  async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    return this.request<Category>('/categories', {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(goal),
+      body: JSON.stringify(category),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create goal');
-    }
-    return response.json();
   }
 
-  async updateGoal(id: number, goal: Partial<Goal>): Promise<Goal> {
-    const response = await fetch(`${this.baseUrl}/goals/${id}`, {
+  async updateCategory(id: number, category: Partial<Category>): Promise<Category> {
+    return this.request<Category>(`/categories/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(goal),
+      body: JSON.stringify(category),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update goal');
-    }
-    return response.json();
   }
 
-  async deleteGoal(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/goals/${id}`, {
+  async deleteCategory(id: number): Promise<void> {
+    return this.request<void>(`/categories/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete goal');
-    }
   }
 
-  // Calendar Integrations
+  // ========================================
+  // Calendar Integrations API
+  // ========================================
+
   async getIntegrations(): Promise<CalendarIntegration[]> {
-    const response = await fetch(`${this.baseUrl}/integrations`, {
-      headers: getAuthHeaders(),
+    return this.request<CalendarIntegration[]>('/integrations', {
+      method: 'GET',
     });
-    if (!response.ok) {
-      throw new Error('Failed to fetch integrations');
-    }
-    return response.json();
   }
 
   async createIntegration(integration: CalendarIntegrationCreate): Promise<CalendarIntegration> {
-    const response = await fetch(`${this.baseUrl}/integrations`, {
+    return this.request<CalendarIntegration>('/integrations', {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(integration),
     });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create integration');
-    }
-    return response.json();
   }
 
   async updateIntegration(id: number, updates: Partial<CalendarIntegrationCreate>): Promise<CalendarIntegration> {
-    const response = await fetch(`${this.baseUrl}/integrations/${id}`, {
+    return this.request<CalendarIntegration>(`/integrations/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
       body: JSON.stringify(updates),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update integration');
-    }
-    return response.json();
   }
 
   async deleteIntegration(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/integrations/${id}`, {
+    return this.request<void>(`/integrations/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete integration');
-    }
-  }
-  async syncIntegration(id: number): Promise<SyncResult> {
-    const response = await fetch(`${this.baseUrl}/integrations/${id}/sync`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to sync integration');
-    }
-    return response.json();
   }
 
-  // Authentication
+  async syncIntegration(id: number): Promise<SyncResult> {
+    return this.request<SyncResult>(`/integrations/${id}/sync`, {
+      method: 'POST',
+    });
+  }
+
+  // ========================================
+  // Suggestions API
+  // ========================================
+
+  async getSuggestions(status?: string): Promise<any[]> {
+    const query = status ? `?status=${status}` : '';
+    return this.request(`/api/suggestions/${query}`, {
+      method: 'GET',
+    });
+  }
+
+  async generateSuggestions(): Promise<any[]> {
+    return this.request('/api/suggestions/generate', {
+      method: 'POST',
+    });
+  }
+
+  async updateSuggestionStatus(
+    suggestionId: number,
+    status: string
+  ): Promise<any> {
+    return this.request(`/api/suggestions/${suggestionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // ========================================
+  // Authentication API
+  // ========================================
+
   async githubLogin(code: string, state: string): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/auth/github/callback`, {
+    const response = await fetch(`${this.baseURL}/auth/github/callback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -343,4 +530,8 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(API_BASE_URL);
+// ========================================
+// Export singleton instance
+// ========================================
+
+export const apiClient = new APIClient(API_BASE_URL);
