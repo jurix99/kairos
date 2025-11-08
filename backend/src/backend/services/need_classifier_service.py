@@ -113,14 +113,12 @@ Analyse le besoin et retourne une classification en JSON avec:
         
         if request.context:
             user_prompt += f"\n\nContexte: {request.context}"
-        
         response = await self.client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.3,
             response_format={"type": "json_object"}
         )
         
