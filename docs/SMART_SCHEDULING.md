@@ -20,16 +20,33 @@ Le système de scheduling intelligent de Kairos permet de trouver automatiquemen
 Service de calcul des temps de trajet entre deux lieux.
 
 **Fonctionnalités :**
-- Calcul du temps de trajet estimé
+- Calcul du temps de trajet estimé (heuristique ou via API)
 - Normalisation des adresses
 - Cache des calculs pour performance
-- Heuristiques basées sur les adresses
+- Support de plusieurs fournisseurs d'API : Google Maps, Mapbox, OpenRouteService
+- Fallback automatique sur heuristiques si l'API échoue
 
-**Temps de trajet par défaut :**
-- Même bâtiment : 5 minutes
-- Même quartier : 15 minutes
-- Même ville : 30 minutes
-- Villes différentes : 60 minutes
+**Modes de calcul :**
+
+1. **Mode heuristique (par défaut)** :
+   - Même bâtiment : 5 minutes
+   - Même quartier : 15 minutes
+   - Même ville : 30 minutes
+   - Villes différentes : 60 minutes
+
+2. **Mode API (optionnel)** :
+   - Google Maps Distance Matrix API pour des calculs précis
+   - Support Mapbox et OpenRouteService (avec géocodage)
+   - Fallback automatique sur heuristiques en cas d'erreur
+
+**Configuration :**
+
+```env
+# Dans .env
+TRAVEL_API_PROVIDER=google  # Options: google, mapbox, openroute
+TRAVEL_API_KEY=your_google_maps_api_key
+USE_TRAVEL_API=true
+```
 
 #### 2. SmartSchedulerService
 
@@ -168,9 +185,12 @@ Optimise l'ordre des événements pour minimiser les déplacements.
 
 ### 4. Calculer un Temps de Trajet
 
-**POST** `/smart-schedule/calculate-travel-time`
+**POST** `/smart-schedule/calculate-travel-time?use_api=false`
 
 Calcule le temps de trajet entre deux lieux.
+
+**Query Parameters:**
+- `use_api` (optionnel, défaut: false) : Si true, utilise l'API configurée pour un calcul précis
 
 **Request Body:**
 ```json
@@ -180,7 +200,7 @@ Calcule le temps de trajet entre deux lieux.
 }
 ```
 
-**Response:**
+**Response (mode heuristique):**
 ```json
 {
   "origin": "123 Main St, Paris",
@@ -188,7 +208,21 @@ Calcule le temps de trajet entre deux lieux.
   "travel_time_minutes": 60,
   "travel_time": "0:60:00",
   "needs_buffer": true,
+  "method": "heuristic",
   "warning_message": "Votre trajet entre '123 Main St, Paris' et '456 Avenue, Lyon' prend environ 60 min"
+}
+```
+
+**Response (mode API - avec `use_api=true`):**
+```json
+{
+  "origin": "123 Main St, Paris",
+  "destination": "456 Avenue, Lyon",
+  "travel_time_minutes": 68,
+  "travel_time": "1:08:00",
+  "needs_buffer": true,
+  "method": "api",
+  "warning_message": "Votre trajet entre '123 Main St, Paris' et '456 Avenue, Lyon' prend environ 68 min"
 }
 ```
 
@@ -465,12 +499,38 @@ Pour une journée avec plusieurs événements :
 
 ## 🚀 Évolutions Futures
 
-### Phase 2 : Intégration avec APIs Externes
+### ✅ Phase 2 : Intégration avec APIs Externes (IMPLÉMENTÉ)
 
-- [ ] Google Maps API pour temps de trajet réels
-- [ ] Trafic en temps réel
-- [ ] Modes de transport (voiture, transport en commun, vélo)
+- [x] Support pour Google Maps Distance Matrix API
+- [x] Configuration flexible des fournisseurs d'API
+- [x] Fallback automatique sur heuristiques
+- [ ] Google Maps API pour temps de trajet réels avec trafic
+- [ ] Mapbox Directions API (avec géocodage)
+- [ ] OpenRouteService API (avec géocodage)
+- [ ] Modes de transport (voiture, transport en commun, vélo, marche)
 - [ ] Météo pour ajuster les temps de trajet
+
+**Configuration actuelle :**
+
+```env
+# .env
+TRAVEL_API_PROVIDER=google
+TRAVEL_API_KEY=your_google_maps_api_key
+USE_TRAVEL_API=true
+```
+
+**Utilisation :**
+
+```python
+# Utiliser l'API pour un calcul précis
+response = requests.post(
+    "http://localhost:8080/smart-schedule/calculate-travel-time?use_api=true",
+    json={
+        "origin": "Tour Eiffel, Paris",
+        "destination": "Arc de Triomphe, Paris"
+    }
+)
+```
 
 ### Phase 3 : Machine Learning
 

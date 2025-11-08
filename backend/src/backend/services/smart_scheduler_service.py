@@ -83,7 +83,12 @@ class SmartSchedulerService:
     
     def __init__(self, db: Session):
         self.db = db
-        self.travel_service = TravelService()
+        # Initialiser le service de trajet avec les paramètres de configuration
+        self.travel_service = TravelService(
+            api_provider=settings.TRAVEL_API_PROVIDER,
+            api_key=settings.TRAVEL_API_KEY,
+            use_api=settings.USE_TRAVEL_API
+        )
     
     def find_best_slot(
         self,

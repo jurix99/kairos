@@ -156,12 +156,28 @@ async def optimize_sequence(
 
 
 @router.post("/calculate-travel-time")
-async def calculate_travel_time(request: TravelTimeRequest):
+async def calculate_travel_time(
+    request: TravelTimeRequest,
+    use_api: bool = Query(False, description="Utiliser l'API pour un calcul précis")
+):
     """
-    Calcule le temps de trajet estimé entre deux lieux
+    Calcule le temps de trajet estimé entre deux lieux.
+    
+    Par défaut, utilise des heuristiques basées sur les adresses.
+    Si use_api=true et qu'une API est configurée, utilise l'API pour un calcul plus précis.
     """
-    travel_service = TravelService()
-    travel_info = travel_service.get_travel_info(request.origin, request.destination)
+    from ..config.settings import settings
+    
+    travel_service = TravelService(
+        api_provider=settings.TRAVEL_API_PROVIDER,
+        api_key=settings.TRAVEL_API_KEY,
+        use_api=settings.USE_TRAVEL_API
+    )
+    travel_info = travel_service.get_travel_info(
+        request.origin,
+        request.destination,
+        use_api=use_api
+    )
     
     return travel_info
 
@@ -175,7 +191,16 @@ async def analyze_daily_travel(
     """
     Analyse complète des déplacements d'une journée avec statistiques
     """
+    from ..config.settings import settings
+    
     scheduler = SmartSchedulerService(db)
+    
+    # Créer une instance de TravelService avec la configuration
+    travel_service = TravelService(
+        api_provider=settings.TRAVEL_API_PROVIDER,
+        api_key=settings.TRAVEL_API_KEY,
+        use_api=settings.USE_TRAVEL_API
+    )
     
     # Récupérer les événements du jour
     events = scheduler._get_day_events(user_id, date)
@@ -196,7 +221,7 @@ async def analyze_daily_travel(
         next_event = events[i + 1]
         
         if current.location and next_event.location:
-            travel_time = TravelService.calculate_travel_time(
+            travel_time = travel_service.calculate_travel_time(
                 current.location, next_event.location
             )
             total_travel_time += travel_time

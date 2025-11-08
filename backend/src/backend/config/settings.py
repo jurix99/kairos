@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o-mini"
     
+    # Travel Time API (optionnel)
+    TRAVEL_API_PROVIDER: Optional[str] = None  # "google", "mapbox", "openroute"
+    TRAVEL_API_KEY: Optional[str] = None
+    USE_TRAVEL_API: bool = False  # Active l'utilisation de l'API pour les calculs de trajet
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
