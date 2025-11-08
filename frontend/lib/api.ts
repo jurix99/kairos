@@ -97,11 +97,10 @@ function getAuthHeaders(): HeadersInit {
   const user = localStorage.getItem('kairos_user');
   if (user) {
     try {
-      const userData = JSON.parse(user);
-      // For now, we'll use a simple auth mechanism
-      // In production, you'd use proper JWT tokens
+      // The backend expects the user data as a Bearer token
       return {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user}`,
       };
     } catch (error) {
       console.error('Error parsing user data:', error);
@@ -315,7 +314,6 @@ class ApiClient {
       throw new Error('Failed to delete integration');
     }
   }
-
   async syncIntegration(id: number): Promise<SyncResult> {
     const response = await fetch(`${this.baseUrl}/integrations/${id}/sync`, {
       method: 'POST',
@@ -324,6 +322,22 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'Failed to sync integration');
+    }
+    return response.json();
+  }
+
+  // Authentication
+  async githubLogin(code: string, state: string): Promise<User> {
+    const response = await fetch(`${this.baseUrl}/auth/github/callback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code, state }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'GitHub authentication failed');
     }
     return response.json();
   }
