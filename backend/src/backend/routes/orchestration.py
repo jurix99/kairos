@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..config.database import get_db
+from ..config.auth import get_current_user
 from ..models.schemas import (
     NeedClassificationRequest,
     NeedClassificationResponse,
@@ -20,7 +21,6 @@ from ..models.schemas import (
 from ..services.orchestration_service import OrchestrationService
 from ..services.need_classifier_service import NeedClassifierService
 from ..services.multi_agent_orchestrator_service import MultiAgentOrchestratorService
-from .auth import get_current_user
 from ..models.database import User
 
 router = APIRouter(prefix="/api/orchestration", tags=["orchestration"])
