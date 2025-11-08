@@ -281,4 +281,170 @@ class SuggestionResponse(SuggestionBase):
     updated_at: datetime
     user_id: int
     
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Schémas pour le système d'agents multi-niveaux
+
+class NeedType(str, Enum):
+    """Types de besoins identifiés par le classificateur"""
+    PUNCTUAL_TASK = "punctual_task"  # Tâche ponctuelle
+    HABIT_SKILL = "habit_skill"  # Habitude/Compétence
+    COMPLEX_PROJECT = "complex_project"  # Projet complexe
+    DECISION_RESEARCH = "decision_research"  # Décision/Recherche
+    SOCIAL_EVENT = "social_event"  # Événement social
+
+
+class NeedComplexity(str, Enum):
+    """Niveaux de complexité des besoins"""
+    SIMPLE = "simple"
+    MODERATE = "moderate"
+    COMPLEX = "complex"
+    VERY_COMPLEX = "very_complex"
+
+
+class AgentType(str, Enum):
+    """Types d'agents disponibles"""
+    EXECUTIVE = "executive"  # Pour tâches ponctuelles
+    COACH = "coach"  # Pour habitudes et compétences
+    STRATEGIST = "strategist"  # Pour définir les phases d'un projet
+    PLANNER = "planner"  # Pour planifier et estimer
+    RESOURCE = "resource"  # Pour identifier les ressources nécessaires
+    RESEARCH = "research"  # Pour recherche et comparaison
+    SOCIAL = "social"  # Pour événements sociaux
+
+
+class NeedClassificationRequest(BaseModel):
+    """Requête de classification d'un besoin"""
+    user_input: str = Field(..., min_length=1, description="Description du besoin par l'utilisateur")
+    context: Optional[dict] = Field(None, description="Contexte additionnel (calendrier, objectifs existants)")
+
+
+class NeedClassificationResponse(BaseModel):
+    """Réponse de classification d'un besoin"""
+    need_type: NeedType
+    complexity: NeedComplexity
+    suggested_agents: List[AgentType]
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Niveau de confiance de la classification")
+    reasoning: str = Field(..., description="Explication de la classification")
+    key_characteristics: List[str] = Field(default_factory=list, description="Caractéristiques clés identifiées")
+
+
+class AgentTaskRequest(BaseModel):
+    """Requête de tâche pour un agent"""
+    agent_type: AgentType
+    user_input: str
+    need_type: NeedType
+    context: Optional[dict] = None
+
+
+class CoachPlan(BaseModel):
+    """Plan généré par l'agent Coach"""
+    phases: List[dict] = Field(..., description="Phases progressives du plan")
+    duration_weeks: int = Field(..., ge=1, description="Durée totale en semaines")
+    frequency_per_week: int = Field(..., ge=1, description="Fréquence par semaine")
+    milestones: List[str] = Field(default_factory=list, description="Jalons importants")
+    success_metrics: List[str] = Field(default_factory=list, description="Métriques de succès")
+
+
+class ProjectPhase(BaseModel):
+    """Phase d'un projet complexe"""
+    phase_number: int
+    title: str
+    description: str
+    estimated_duration_weeks: int
+    dependencies: List[int] = Field(default_factory=list, description="Numéros des phases dépendantes")
+    deliverables: List[str] = Field(default_factory=list, description="Livrables de cette phase")
+
+
+class ProjectPlan(BaseModel):
+    """Plan de projet généré par les agents Stratège et Planificateur"""
+    title: str
+    phases: List[ProjectPhase]
+    total_duration_weeks: int
+    critical_path: List[int] = Field(default_factory=list, description="Chemin critique (numéros de phases)")
+    estimated_budget: Optional[str] = None
+
+
+class ResourceRequirement(BaseModel):
+    """Ressource requise pour un projet ou objectif"""
+    resource_type: str = Field(..., description="Type de ressource (budget, outil, compétence)")
+    name: str
+    description: str
+    priority: PriorityLevel
+    estimated_cost: Optional[str] = None
+    alternatives: List[str] = Field(default_factory=list)
+
+
+class ResourceAnalysis(BaseModel):
+    """Analyse des ressources par l'agent Resource"""
+    required_resources: List[ResourceRequirement]
+    total_estimated_budget: Optional[str] = None
+    missing_skills: List[str] = Field(default_factory=list)
+    recommended_tools: List[str] = Field(default_factory=list)
+
+
+class ComparisonCriteria(BaseModel):
+    """Critère de comparaison"""
+    name: str
+    weight: float = Field(..., ge=0.0, le=1.0, description="Poids du critère (0-1)")
+    is_numeric: bool = False
+
+
+class ComparisonOption(BaseModel):
+    """Option à comparer"""
+    name: str
+    criteria_values: dict = Field(..., description="Valeurs des critères pour cette option")
+    pros: List[str] = Field(default_factory=list)
+    cons: List[str] = Field(default_factory=list)
+    score: Optional[float] = None
+
+
+class ResearchAnalysis(BaseModel):
+    """Analyse de recherche et comparaison"""
+    question: str
+    criteria: List[ComparisonCriteria]
+    options: List[ComparisonOption]
+    recommendation: str
+    reasoning: str
+
+
+class SocialEventPlan(BaseModel):
+    """Plan d'événement social"""
+    event_type: str
+    guest_count: Optional[int] = None
+    budget: Optional[str] = None
+    timeline: List[dict] = Field(..., description="Timeline des tâches")
+    logistics: dict = Field(default_factory=dict, description="Détails logistiques")
+    guest_management: dict = Field(default_factory=dict, description="Gestion des invités")
+
+
+class AgentTaskResponse(BaseModel):
+    """Réponse d'un agent"""
+    agent_type: AgentType
+    success: bool
+    result: dict = Field(..., description="Résultat de la tâche (structure varie selon l'agent)")
+    message: str
+    next_steps: List[str] = Field(default_factory=list, description="Actions suivantes suggérées")
+    created_goals: List[int] = Field(default_factory=list, description="IDs des objectifs créés")
+    created_events: List[int] = Field(default_factory=list, description="IDs des événements créés")
+
+
+class OrchestratedPlanRequest(BaseModel):
+    """Requête pour un plan orchestré complet"""
+    user_input: str = Field(..., min_length=1)
+    include_calendar_integration: bool = True
+    create_goals: bool = True
+    create_events: bool = False
+
+
+class OrchestratedPlanResponse(BaseModel):
+    """Réponse avec plan orchestré complet"""
+    classification: NeedClassificationResponse
+    agent_responses: List[AgentTaskResponse]
+    integrated_plan: dict = Field(..., description="Plan intégré final")
+    summary: str
+    created_goals: List[int] = Field(default_factory=list)
+    created_events: List[int] = Field(default_factory=list)
+    
     model_config = ConfigDict(from_attributes=True) 
