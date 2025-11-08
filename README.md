@@ -319,6 +319,47 @@ The system initializes with these default categories:
 - **API connection failed**: Verify backend is running and `NEXT_PUBLIC_API_URL` is correct
 - **Build errors**: Clear `.next` folder and `node_modules`, then reinstall
 
+## 🔗 Calendar Integration
+
+Kairos supports integration with external calendars to automatically sync your events.
+
+### Apple Calendar (iCloud)
+
+To connect your Apple Calendar:
+
+1. **Generate an App-Specific Password**:
+   - Go to [appleid.apple.com](https://appleid.apple.com)
+   - Sign in and navigate to **Security** → **App-Specific Passwords**
+   - Click **Generate Password** and give it a name like "Kairos"
+   - Save the generated password (you'll need it in step 3)
+
+2. **Get Your CalDAV URL**:
+   - Go to [iCloud.com/calendar](https://www.icloud.com/calendar)
+   - Select the calendar you want to sync
+   - Click the share icon (📤) next to the calendar name
+   - Check "Public Calendar"
+   - Copy the CalDAV URL (it looks like `https://caldav.icloud.com/...`)
+
+3. **Add Integration in Kairos**:
+   - Go to **Settings** → **Calendar Integrations**
+   - Click **Add Integration**
+   - Select **Apple Calendar (iCloud)**
+   - Enter your CalDAV URL from step 2
+   - Enter your Apple ID email
+   - Paste the app-specific password from step 1
+   - Click **Add Integration**
+
+4. **Sync Your Events**:
+   - Once connected, click **Sync** to import events
+   - Events will be automatically synced if "Auto Sync" is enabled
+   - Imported events appear with the "Imported" category
+
+### Supported Providers
+
+- ✅ **Apple Calendar** (iCloud) - Full support via CalDAV
+- 🔜 **Google Calendar** - Coming soon
+- 🔜 **Outlook Calendar** - Coming soon
+
 ## 📊 Project Status
 
 ### Current Version: 0.1.0
@@ -326,6 +367,7 @@ The system initializes with these default categories:
 ### Roadmap
 
 #### Version 0.2.0
+- [x] Apple Calendar integration (CalDAV)
 - [ ] Recurring events
 - [ ] Email notifications
 - [ ] Calendar export (iCal)
@@ -333,7 +375,8 @@ The system initializes with these default categories:
 
 #### Version 0.3.0
 - [ ] Team collaboration
-- [ ] External calendar sync (Google, Outlook)
+- [ ] Google Calendar integration
+- [ ] Outlook Calendar integration
 - [ ] Advanced AI features
 - [ ] Analytics dashboard
 

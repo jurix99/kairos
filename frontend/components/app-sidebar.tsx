@@ -8,7 +8,8 @@ import {
   IconHelp,
   IconRobot,
   IconSettings,
-  IconTarget
+  IconTarget,
+  IconSparkles
 } from "@tabler/icons-react"
 import { Calendar } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -60,6 +61,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         title: "Calendar",
         url: "/calendar",
         icon: IconCalendar,
+      },
+      {
+        title: "Planner AI",
+        url: "/planner",
+        icon: IconSparkles,
       },
       {
         title: "Assistant",
