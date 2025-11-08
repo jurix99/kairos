@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config.database import create_tables, init_default_categories, get_db
 from .config.settings import settings
-from .routes import categories_router, events_router, scheduling_router, auth_router, assistant_router, goals_router, suggestions_router
+from .routes import categories_router, events_router, scheduling_router, auth_router, assistant_router, goals_router, suggestions_router, orchestration_router
 
 # Configuration du logging
 logging.basicConfig(
@@ -46,6 +46,7 @@ app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(goals_router)
 app.include_router(suggestions_router)
+app.include_router(orchestration_router)
 
 
 @app.on_event("startup")
