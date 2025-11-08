@@ -17,10 +17,18 @@
 - **Category System**: Customizable categories with color coding
 - **Conflict Resolution**: Intelligent handling of scheduling conflicts
 
+### 🗺️ Location & Travel Intelligence
+- **Travel Time Optimization**: Automatic calculation of travel time between events
+- **Geographic Clustering**: Groups events by location to minimize travel
+- **Conflict Detection**: Identifies insufficient time between events considering travel
+- **Smart Suggestions**: Proposes optimal reorganization based on location
+- **Travel Analysis**: Daily statistics and recommendations for travel optimization
+
 ### 🤖 AI-Powered
 - **Scheduling Assistant**: AI recommendations for optimal time slots
 - **Conflict Analysis**: Smart suggestions for resolving scheduling conflicts
 - **Natural Language**: Create events using natural language descriptions
+- **Time Constraints**: Support for custom scheduling rules ("not after 7 PM", "morning only")
 
 ### 🔐 Authentication & Security
 - **GitHub OAuth**: Secure authentication with GitHub
@@ -150,6 +158,10 @@ npm run dev
 - **Backend README**: [backend/README.md](backend/README.md)
 - **Frontend README**: [frontend/README.md](frontend/README.md)
 
+### Feature Documentation
+- **Smart Scheduling**: [docs/SMART_SCHEDULING.md](docs/SMART_SCHEDULING.md) - Location-aware scheduling with travel optimization
+- **Suggestions Engine**: [docs/SUGGESTIONS.md](docs/SUGGESTIONS.md) - Intelligent recommendations system
+
 ### Setup Guides
 - **Frontend Setup**: [frontend/SETUP.md](frontend/SETUP.md)
 - **Quick Start**: [frontend/QUICK_START.md](frontend/QUICK_START.md)
@@ -278,6 +290,16 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 | GET | `/schedule/daily` | Get daily schedule |
 | GET | `/schedule/weekly` | Get weekly schedule |
 | POST | `/conflicts/resolve` | Resolve scheduling conflict |
+
+### Smart Scheduling (Location-Aware)
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/smart-schedule/find-best-slot` | Find optimal slot with location constraints |
+| POST | `/smart-schedule/detect-travel-conflicts` | Detect travel time conflicts |
+| POST | `/smart-schedule/optimize-sequence` | Optimize event sequence by location |
+| POST | `/smart-schedule/calculate-travel-time` | Calculate travel time between locations |
+| GET | `/smart-schedule/travel-analysis/{user_id}` | Analyze daily travel patterns |
+| POST | `/smart-schedule/constraints/validate` | Validate time constraints |
 
 ### AI Assistant
 | Method | Endpoint | Description |
