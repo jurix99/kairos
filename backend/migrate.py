@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, '/app/src')
 
 from backend.config.settings import settings
-from backend.models.database import Base, User, Category, Event, Goal, Suggestion
+from backend.models.database import Base, User, Category, Event, Goal, Suggestion, CalendarIntegration
 
 
 def create_tables():

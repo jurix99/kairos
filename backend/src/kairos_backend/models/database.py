@@ -27,6 +27,7 @@ class User(Base):
     events = relationship("Event", back_populates="user")
     categories = relationship("Category", back_populates="user")
     goals = relationship("Goal", back_populates="user")
+    calendar_integrations = relationship("CalendarIntegration", back_populates="user")
 
 
 class Category(Base):
@@ -142,4 +143,25 @@ class Goal(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relations
-    user = relationship("User", back_populates="goals") 
+    user = relationship("User", back_populates="goals")
+
+
+class CalendarIntegration(Base):
+    """External calendar integration (Apple, Google, Outlook, etc.)"""
+    __tablename__ = "calendar_integrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    provider = Column(String(50), nullable=False)  # apple, google, outlook, etc.
+    calendar_url = Column(String(500), nullable=False)  # CalDAV URL for Apple Calendar
+    calendar_name = Column(String(200), nullable=True)  # Display name
+    username = Column(String(200), nullable=True)  # Username for authentication
+    password = Column(String(500), nullable=True)  # Encrypted password or app-specific password
+    is_active = Column(Boolean, default=True)
+    last_sync = Column(DateTime, nullable=True)  # Last successful sync timestamp
+    sync_enabled = Column(Boolean, default=True)  # Enable/disable auto-sync
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relations
+    user = relationship("User", back_populates="calendar_integrations") 

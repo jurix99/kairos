@@ -231,4 +231,58 @@ class GoalResponse(GoalBase):
     completed_at: Optional[datetime] = None
     user_id: int
     
-    model_config = ConfigDict(from_attributes=True) 
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Schémas pour les intégrations de calendrier
+
+class CalendarProvider(str, Enum):
+    """Providers de calendrier supportés"""
+    APPLE = "apple"
+    GOOGLE = "google"
+    OUTLOOK = "outlook"
+
+
+class CalendarIntegrationBase(BaseModel):
+    """Schéma de base pour une intégration de calendrier"""
+    provider: CalendarProvider
+    calendar_url: str = Field(..., min_length=1, max_length=500, description="CalDAV URL or API endpoint")
+    calendar_name: Optional[str] = Field(None, max_length=200, description="Display name for the calendar")
+    username: Optional[str] = Field(None, max_length=200, description="Username for authentication")
+    sync_enabled: bool = Field(default=True, description="Enable automatic synchronization")
+
+
+class CalendarIntegrationCreate(CalendarIntegrationBase):
+    """Schéma pour créer une intégration de calendrier"""
+    password: str = Field(..., min_length=1, max_length=500, description="Password or app-specific password")
+
+
+class CalendarIntegrationUpdate(BaseModel):
+    """Schéma pour mettre à jour une intégration de calendrier"""
+    calendar_name: Optional[str] = Field(None, max_length=200)
+    username: Optional[str] = Field(None, max_length=200)
+    password: Optional[str] = Field(None, min_length=1, max_length=500)
+    sync_enabled: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+class CalendarIntegrationResponse(CalendarIntegrationBase):
+    """Schéma de réponse pour une intégration de calendrier"""
+    id: int
+    user_id: int
+    is_active: bool
+    last_sync: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SyncResult(BaseModel):
+    """Résultat d'une synchronisation de calendrier"""
+    success: bool
+    events_imported: int = 0
+    events_exported: int = 0
+    events_updated: int = 0
+    errors: List[str] = []
+    message: str 
