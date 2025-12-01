@@ -8,6 +8,16 @@
 
 > An intelligent calendar and scheduling system with automated conflict resolution, smart scheduling, and AI-powered assistance.
 
+## 🎬 Demo
+
+<div align="center">
+
+![Kairos AI Assistant](docs/assets/demo.png)
+
+*AI-powered scheduling assistant to help you manage your calendar intelligently*
+
+</div>
+
 ## ✨ Features
 
 ### 🎯 Core Functionality
